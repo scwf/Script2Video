@@ -1,0 +1,14 @@
+# ImageRenderer配置文件
+# 火山引擎AK
+ak: "<your-ak>"
+# 火山引擎SK
+sk: "<your-sk>"
+# 其他可扩展参数 
+# 图片宽度
+width: 1024
+# 图片高度
+height: 768
+# 图像生成模型名称（可选）
+model_name: "jimeng_high_aes_general_v21_L"
+# 并发线程数（可根据实际情况调整）
+thread_num: 1 

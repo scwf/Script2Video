@@ -1,0 +1,11 @@
+# PromptGenerator配置文件
+# openai兼容API地址
+api_base: "https://api.deepseek.com"
+# 大模型API密钥（请替换为实际key）
+api_key: "<your-api-key>"
+# 使用的大模型名称（如gpt-3.5-turbo等）
+model: "deepseek-chat"
+# 并发线程数（可根据实际情况调整）
+thread_num: 5
+# 图像风格（可根据实际需求调整）
+style: "Ghibli style" 
