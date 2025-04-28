@@ -7,10 +7,10 @@
 ```
 User Script
    │
-   ├─► ① Segmenter (GPT-4)
+   ├─► ① Segmenter (GPT-4\deepseek)
    │       └── segments.json  # [{id,text}]
    │
-   ├─► ② Prompt Generator (GPT-4)
+   ├─► ② Prompt Generator (GPT-4\deepseek)
    │       └── prompts.json   # [{id,prompt}]
    │
    ├─► ③ Image Renderer (SDXL)
@@ -109,7 +109,7 @@ User Script
 4. 使用哪个大模型，以及对应的key均使用配置文件配置，不在代码里面硬编码
 5. 使用openai sdk调用大模型
 
-#### 2.3.2 ImageRenderer模块设计
+#### 2.3.3 ImageRenderer模块设计
 
 1. 使用python语言实现
 2. 一次调用只读取2.3.2生成结果文件中的一个提示词，且按顺序读取
@@ -139,7 +139,9 @@ User Script
     ```
 4. 通过配置文件配置ak、sk
 
+#### 2.3.4 ImageRenderer模块设计
 
+1. todo: 待补充
 
 ### 2.4 同步机制
 1. **权威时长**：以 TTS 输出的 `audio.duration` 作为时间轴。  
