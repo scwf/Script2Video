@@ -19,6 +19,7 @@ import yaml
 from volcengine.visual.VisualService import VisualService
 import concurrent.futures
 import base64
+import time
 
 # 读取配置文件
 CONFIG_PATH = os.environ.get(
@@ -79,7 +80,9 @@ def render_images(input_path, output_dir):
         try:
             img_base64 = resp['data']['binary_data_base64'][0]
             img_bytes = base64.b64decode(img_base64)
-            img_file = os.path.join(output_dir, f"image_{idx+1}.png")
+            # 生成带时间戳的文件名
+            timestamp = time.strftime('%Y%m%d_%H%M%S')
+            img_file = os.path.join(output_dir, f"image_{idx+1}_{timestamp}.png")
             with open(img_file, 'wb') as imgf:
                 imgf.write(img_bytes)
             print(f"[INFO] 第{idx+1}张图像已保存为: {img_file}")
