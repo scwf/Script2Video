@@ -4,7 +4,7 @@ PromptGenerator 图像提示词生成工具
 
 【命令行用法】
 
-    python pipeline\prompt_generator\prompt_generator.py 分段文本输入.txt --output 图像提示词输出.txt
+    python pipeline\prompt_generator\prompt_generator_split_mod.py 分段文本输入.txt --output 图像提示词输出.txt
 
 【参数说明】
 - input_path：必填，分段文本输入文件路径（每行为一个分段）
@@ -34,7 +34,6 @@ API_KEY = config.get('api_key')    # 大模型API密钥
 MODEL = config.get('model')        # 使用的大模型名称
 THREAD_NUM = config.get('thread_num', 5)
 STYLE = config.get('style', 'Ghibli style')
-BACKGROUND = config.get('background', '暂无背景信息补充')
 
 missing = []
 if not API_BASE:
@@ -50,41 +49,28 @@ if missing:
 
 # 构造图像提示词生成的提示模板
 PROMPT_TEMPLATE = '''
-你是一个图像提示词生成专家，请根据我提供的文字稿把文字稿中每个段落生成对应的图像提示词。
+你是一个图像提示词生成专家，请根据我提供的文字稿生成对应的图像提示词。请遵循以下要求：
+
+1. 提取文字稿的核心主题、场景、情感、人物、时间等要素，并确保这些要素清晰地反映在图像提示词中。
+2. 生成一个具体且详细的图像提示词，确保其内容与文字稿紧密相关，能够准确传达段落的意图和氛围。
+3. 每个图像提示词要具备足够的描述信息，以确保图像生成模型能够生成符合文字稿内容的准确图像。
+4. 确保每个段落的图像提示词符合该文字稿的独特背景和情感基调。
 
 以下是文字稿内容：
 {content}
 
-文字稿的格式：
-1. 段落1...
-2. 段落2...
-3. 段落3...
-...
+请根据上述要求生成{style}风格的图像提示词。
 
-
-请遵循以下要求生成图像生成提示词：
-1. 每个段落生成一个具体且详细的图像提示词，确保其生成的提示词和段落内容紧密相关，能够准确传达段落的意图和氛围。
-2. 提取每个段落的核心主题、场景、情感、人物、时间等要素，并确保这些要素清晰准确地反映在图像提示词中。
-3. 生成图像的风格要求为：{style}
-4. 生成的提示词要符合{background}的背景设定
-5. 确保每个段落的图像提示词涉及的人物、场景、物品、服饰等具备一致性，符合整体文字稿的背景和情感基调。
-
-返回的提示词的格式如下，提示词的语言和文字稿语言保持一致：
-1. 段落1对应图像生成提示词...
-2. 段落2对应图像生成提示词...
-3. 段落3对应图像生成提示词...
-...
-
-返回结果时，每一行只需要返回对应段落的图像生成提示词，不要返回任何其他无关内容。
+返回结果时，只需要返回图像提示词，不要返回任何其他内容。
 '''
 
 def read_segment_file(input_path):
-    """读取分段文本文件内容"""
+    """读取分段文本文件，每行为一个分段，返回分段列表"""
     print(f"[INFO] 正在读取分段文本文件: {input_path}")
     with open(input_path, 'r', encoding='utf-8') as f:
-        content = f.read()
-    print("[INFO] 分段文本读取成功")
-    return content
+        segments = [line.strip() for line in f if line.strip()]
+    print(f"[INFO] 共读取到{len(segments)}个分段")
+    return segments
 
 def call_openai_api(prompt):
     """调用openai兼容API生成图像提示词，使用openai库"""
@@ -100,19 +86,26 @@ def call_openai_api(prompt):
 
 def generate_prompts(input_path, output_path):
     """主流程：读取分段，使用多线程并行生成图像提示词，写入输出文件"""
-    content = read_segment_file(input_path)
-    print(f"[INFO] 构造调用大模型生成图像提示词的提示模板")
-    prompt = PROMPT_TEMPLATE.format(content=content, style=STYLE, background=BACKGROUND)
-    print(f"[INFO] 调用大模型进行提示词生成")
-    result = call_openai_api(prompt)
+    segments = read_segment_file(input_path)
+    results = [None] * len(segments)
+    def process(idx_seg):
+        idx, seg = idx_seg
+        print(f"[INFO] 正在处理第{idx+1}个分段...")
+        prompt = PROMPT_TEMPLATE.format(content=seg, style=STYLE)
+        result = call_openai_api(prompt)
+        print(f"[INFO] 第{idx+1}个分段处理完成")
+        return idx, result
+    print(f"[INFO] 并发线程数设置为: {THREAD_NUM}")
+    with concurrent.futures.ThreadPoolExecutor(max_workers=THREAD_NUM) as executor:
+        futures = [executor.submit(process, (idx, seg)) for idx, seg in enumerate(segments)]
+        for future in concurrent.futures.as_completed(futures):
+            idx, result = future.result()
+            results[idx] = result
     # 写入输出文件
-    if output_path:
-        with open(output_path, 'w', encoding='utf-8') as f:
-            f.write(result)
-        print(f"[INFO] 生图提示词已写入文件: {output_path}")
-    else:
-        print("[INFO] 生图提示词如下：")
-        print(result)
+    with open(output_path, 'w', encoding='utf-8') as f:
+        for idx, item in enumerate(results, 1):
+            f.write(f"{idx}. {item.strip()}\n")
+    print(f"[INFO] 所有分段已处理完毕，结果已写入: {output_path}")
 
 if __name__ == '__main__':
     import argparse
